@@ -1,4 +1,4 @@
-from sqlalchemy import Column, BigInteger, Text, DateTime, ForeignKey, Index
+from sqlalchemy import Column, BigInteger, Integer, Boolean, String, Text, DateTime, ForeignKey, func, Index
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from sqlalchemy import UniqueConstraint
@@ -24,6 +24,7 @@ class Memo(Base):
     title = Column(Text, nullable=False)
     content = Column(Text, nullable=False)
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    is_secret = Column(Boolean, default=False)
 
     # 관계 설정: 메모는 한 명의 작성자에게 속함
     author = relationship("User", back_populates="memos")

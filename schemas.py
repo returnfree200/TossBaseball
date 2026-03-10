@@ -22,6 +22,10 @@ class UserOut(BaseModel):
 class MemoCreate(BaseModel):
     title: str
     content: str
+    is_secret: Optional[bool] = False
+
+    class Config:
+        from_attributes = True
 
 class MemoOut(BaseModel):
     id: int
@@ -29,8 +33,7 @@ class MemoOut(BaseModel):
     title: str
     content: str
     created_at: datetime
-    # JOIN 조회를 위해 작성자 정보를 포함 (Optional)
-    user: Optional[UserOut] = None 
+    is_secret: bool
 
     class Config:
         from_attributes = True

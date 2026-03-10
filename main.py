@@ -26,15 +26,15 @@ def get_db():
     finally:
         db.close()
 
-# 1) POST /users
-@app.post("/users", response_model=schemas.UserOut)
+# 1) POST /users -> /join
+@app.post("/join", response_model=schemas.UserOut)
 def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     # email 중복 체크
     db_user = db.query(models.User).filter(models.User.email == user.email).first()
     if db_user:
         raise HTTPException(status_code=400, detail={"error": "EMAIL_ALREADY_EXISTS"})
     
-    new_user = models.User(email=user.email, name=user.name)
+    new_user = models.User(email=user.email, name=user.name, age=user.age)
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
@@ -48,7 +48,7 @@ def create_memo(user_id: int, memo: schemas.MemoCreate, db: Session = Depends(ge
     if not db_user:
         raise HTTPException(status_code=400, detail={"error": "USER_NOT_FOUND"})
     
-    new_memo = models.Memo(user_id=user_id, title=memo.title, content=memo.content)
+    new_memo = models.Memo(user_id=user_id, title=memo.title, content=memo.content, is_secret=bool(memo.is_secret))
     db.add(new_memo)
     db.commit()
     db.refresh(new_memo)
@@ -133,3 +133,43 @@ def create_reaction(memo_id: int, req: schemas.ReactionRequest, db: Session = De
 
     db.commit()
     return {"memo_id": memo_id, "user_id": req.user_id, "reaction": req.reaction}
+
+
+@app.get("/memos/public", response_model=list[schemas.MemoOut])
+def get_public_memos(db: Session = Depends(get_db)):
+    public_memos = db.query(models.Memo).filter(models.Memo.is_secret == False).all()
+    
+    if not public_memos:
+        raise HTTPException(status_code=404, detail={"error": "해당 메모를 찾을 수 없어요!"})
+    
+    return public_memos
+
+
+@app.get("/memos/{memo_id}", response_model=schemas.MemoOut)
+def get_one_memo(memo_id: int, db: Session = Depends(get_db)):
+    memo = db.query(models.Memo).filter(models.Memo.id == memo_id).first()
+
+    if not memo:
+        raise HTTPException(status_code=404, detail={"error": "해당 메모를 찾을 수 없어요!"})
+    
+    return memo
+    
+
+@app.get("/users/adults", response_model=List[schemas.UserOut])
+def get_adult_users(db: Session = Depends(get_db)):
+    adults = db.query(models.User).filter(models.User.age >= 20).all()
+
+    return adults
+
+
+@app.get("/users/{user_id}/memos", response_model=list[schemas.MemoOut])
+def get_user_memos(user_id: int, db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="존재하지 않는 유저입니다.")
+
+    memos = db.query(models.Memo).filter(models.Memo.user_id == user_id).all()
+    return memos
+
+
+
